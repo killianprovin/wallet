@@ -1,12 +1,7 @@
-use wallet::hash::{base58_encode};
+use wallet::utils::{base58_encode};
 use wallet::bip::bip44::{generate_master_xprv, derive_child_xprv, xprv_to_xpub};
 use wallet::bip::bip49::{generate_master_yprv, derive_child_yprv, yprv_to_ypub};
 use wallet::bip::bip84::{generate_master_zprv, derive_child_zprv, zprv_to_zpub};
-
-
-fn _vec_to_hex(bytes: Vec<u8>) -> String {
-    bytes.iter().map(|byte| format!("{:02x}", byte)).collect()
-}
 
 fn main() {
     let mnemonic = "consider cry bomb sniff party pattern pool horse skirt damage dawn wagon excess slab snow abstract series dad worth frequent lemon imitate nest chicken";
