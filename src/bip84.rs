@@ -1,4 +1,4 @@
-use crate::bip::bip32::{generate_master_prv, derive_child_prv, derive_child_pub, prv_to_pub};
+use crate::bip32::{generate_master_prv, derive_child_prv, derive_child_pub, prv_to_pub};
 
 const ZPUB_VERSION: [u8; 4] = [0x04, 0xB2, 0x47, 0x46];
 const ZPRV_VERSION: [u8; 4] = [0x04, 0xB2, 0x43, 0x0C];

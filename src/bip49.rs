@@ -1,4 +1,4 @@
-use crate::bip::bip32::{generate_master_prv, derive_child_prv, derive_child_pub, prv_to_pub};
+use crate::bip32::{generate_master_prv, derive_child_prv, derive_child_pub, prv_to_pub};
 
 const YPUB_VERSION: [u8; 4] = [0x04, 0x9D, 0x7C, 0xB2];
 const YPRV_VERSION: [u8; 4] = [0x04, 0x9D, 0x78, 0x78];

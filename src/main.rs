@@ -1,7 +1,7 @@
 use wallet::utils::{base58_encode};
-use wallet::bip::bip44::{generate_master_xprv, derive_child_xprv, xprv_to_xpub};
-use wallet::bip::bip49::{generate_master_yprv, derive_child_yprv, yprv_to_ypub};
-use wallet::bip::bip84::{generate_master_zprv, derive_child_zprv, zprv_to_zpub};
+use wallet::bip44::{generate_master_xprv, derive_child_xprv, xprv_to_xpub, p2pkh_address_from_xpub};
+use wallet::bip49::{generate_master_yprv, derive_child_yprv, yprv_to_ypub};
+use wallet::bip84::{generate_master_zprv, derive_child_zprv, zprv_to_zpub};
 
 fn main() {
     let mnemonic = "consider cry bomb sniff party pattern pool horse skirt damage dawn wagon excess slab snow abstract series dad worth frequent lemon imitate nest chicken";
@@ -44,4 +44,15 @@ fn main() {
     let xpub_44_0_0_0_derived = derive_child_xprv(&xprv_44_0_0, 0);
     let xpub_44_0_0_0_derived = xprv_to_xpub(&xpub_44_0_0_0_derived);
     assert_eq!(xpub_44_0_0_0, xpub_44_0_0_0_derived);
+
+    // Génération de 3 adresses P2PKH à partir de la clé publique compressée
+    let address0 = p2pkh_address_from_xpub(&xpub_44_0_0_0, 0);
+    let address1 = p2pkh_address_from_xpub(&xpub_44_0_0_0, 1);
+    let address2 = p2pkh_address_from_xpub(&xpub_44_0_0_0, 2);
+
+    println!("\n--- P2PKH addresses ---");
+    println!("Address 0: {}", address0);
+    println!("Address 1: {}", address1);
+    println!("Address 2: {}", address2);
+
 }

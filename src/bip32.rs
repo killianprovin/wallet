@@ -1,6 +1,6 @@
-use crate::bip::bip39::generate_seed;
-use crate::hash::{hmac_sha512, double_sha256, hash160};
 use secp256k1::{Secp256k1, SecretKey, PublicKey, Scalar};
+use crate::hash::{hmac_sha512, double_sha256, hash160};
+use crate::bip39::generate_seed;
 
 pub fn generate_master_prv(mnemonic: &str, passphrase: &str, version: &[u8; 4]) -> Vec<u8> {
     let seed = generate_seed(mnemonic, passphrase);
