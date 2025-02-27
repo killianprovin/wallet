@@ -1,5 +1,4 @@
 pub fn ripemd160(input: &[u8]) -> Vec<u8> {
-    // Valeurs d'initialisation (état sur 5 mots 32 bits)
     let mut state = [
         0x67452301u32,
         0xefcdab89u32,
@@ -8,20 +7,15 @@ pub fn ripemd160(input: &[u8]) -> Vec<u8> {
         0xc3d2e1f0u32,
     ];
 
-    // Copie de l'input pour le padding
     let mut data = input.to_vec();
     let bit_len = (data.len() as u64) * 8;
 
-    // Ajout du bit 1 (0x80)
     data.push(0x80);
-    // Compléter avec des zéros jusqu'à atteindre 56 octets modulo 64
     while data.len() % 64 != 56 {
         data.push(0);
     }
-    // Ajout de la longueur en bits (little-endian, 8 octets)
     data.extend(&bit_len.to_le_bytes());
 
-    // Constantes et tableaux utilisés dans l'algorithme
     const R: [usize; 80] = [
          0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
          7,  4, 13,  1, 10,  6, 15,  3, 12,  0,  9,  5,  2, 14, 11,  8,
@@ -67,16 +61,13 @@ pub fn ripemd160(input: &[u8]) -> Vec<u8> {
         0x00000000,
     ];
 
-    // Traitement de chaque bloc de 64 octets
     for block in data.chunks(64) {
-        // Décodage du bloc en 16 mots 32 bits (little-endian)
         let mut x = [0u32; 16];
         for i in 0..16 {
             let j = i * 4;
             x[i] = u32::from_le_bytes([block[j], block[j + 1], block[j + 2], block[j + 3]]);
         }
 
-        // Initialisation des registres pour ce bloc
         let mut a  = state[0];
         let mut b  = state[1];
         let mut c  = state[2];
@@ -89,7 +80,6 @@ pub fn ripemd160(input: &[u8]) -> Vec<u8> {
         let mut d_prime  = state[3];
         let mut e_prime  = state[4];
 
-        // Fonctions de ronde
         let f = |j: usize, x: u32, y: u32, z: u32| -> u32 {
             match j / 16 {
                 0 => x ^ y ^ z,
@@ -111,7 +101,6 @@ pub fn ripemd160(input: &[u8]) -> Vec<u8> {
             }
         };
 
-        // 80 tours de transformation parallèles
         for j in 0..80 {
             let temp = a
                 .wrapping_add(f(j, b, c, d))
@@ -138,7 +127,6 @@ pub fn ripemd160(input: &[u8]) -> Vec<u8> {
             b_prime = temp_prime;
         }
 
-        // Combinaison des deux lignes
         let t = state[1]
             .wrapping_add(c)
             .wrapping_add(d_prime);
@@ -157,7 +145,6 @@ pub fn ripemd160(input: &[u8]) -> Vec<u8> {
         state[0] = t;
     }
 
-    // Conversion de l'état final en vecteur de 20 octets (160 bits)
     let mut digest = Vec::with_capacity(20);
     for &word in &state {
         digest.extend_from_slice(&word.to_le_bytes());

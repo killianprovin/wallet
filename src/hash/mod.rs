@@ -18,3 +18,4 @@ pub use ripemd160::ripemd160;
 pub fn hash160(input: &[u8]) -> Vec<u8> {
     ripemd160(&sha256(input))
 }
+
