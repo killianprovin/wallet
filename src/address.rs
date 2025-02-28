@@ -1,7 +1,7 @@
 use crate::utils::base58_encode;
 use crate::hash::{hash160, double_sha256};
 use crate::utils::encode_bech32;
-use crate::utils::bech32::convert_bits;
+use crate::utils::bech32::{convert_bits, Bech32Variant};
 
 pub fn p2pkh_address(pubkey: &[u8]) -> String {
     let hash160_val = hash160(pubkey);
@@ -43,5 +43,5 @@ pub fn p2wpkh_address(pubkey: &[u8]) -> String {
     let mut data = vec![0x00];
     data.extend_from_slice(&convert_bits(&ripemd160_hash, 8, 5, true).unwrap());
 
-    encode_bech32("bc", &data)
+    encode_bech32("bc", &data, Bech32Variant::Bech32)
 }

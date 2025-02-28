@@ -1,5 +1,10 @@
 const CHARSET: &str = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 
+pub enum Bech32Variant {
+    Bech32,
+    Bech32m,
+}
+
 fn polymod(values: &[u8]) -> u32 {
     let mut chk: u32 = 1;
     for v in values {
@@ -29,12 +34,15 @@ fn hrp_expand(hrp: &str) -> Vec<u8> {
     ret
 }
 
-fn create_checksum(hrp: &str, data: &[u8]) -> Vec<u8> {
+fn create_checksum(hrp: &str, data: &[u8], variant: Bech32Variant) -> Vec<u8> {
     let mut values = hrp_expand(hrp);
     values.extend_from_slice(data);
-    
     values.extend_from_slice(&[0u8; 6]);
-    let polymod_result = polymod(&values) ^ 1;
+    let polymod_result = polymod(&values)
+        ^ match variant {
+            Bech32Variant::Bech32 => 1,
+            Bech32Variant::Bech32m => 0x2bc830a3,
+        };
     let mut checksum = Vec::new();
     for i in 0..6 {
         checksum.push(((polymod_result >> (5 * (5 - i))) & 31) as u8);
@@ -42,8 +50,8 @@ fn create_checksum(hrp: &str, data: &[u8]) -> Vec<u8> {
     checksum
 }
 
-pub fn encode_bech32(hrp: &str, data: &[u8]) -> String {
-    let checksum = create_checksum(hrp, data);
+pub fn encode_bech32(hrp: &str, data: &[u8], variant: Bech32Variant) -> String {
+    let checksum = create_checksum(hrp, data, variant);
     let mut combined = Vec::new();
     combined.extend_from_slice(data);
     combined.extend_from_slice(&checksum);
