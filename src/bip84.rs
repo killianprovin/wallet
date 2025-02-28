@@ -23,6 +23,6 @@ pub fn zprv_to_zpub(prv: &[u8]) -> Vec<u8> {
 pub fn p2wpkh_address_from_zpub(parent_zpub: &[u8], index: u32) -> String {
     let child_zpub = derive_child_zpub(parent_zpub, index);
     let pubkey_bytes = &child_zpub[45..78];
-    assert_eq!(pubkey_bytes.len(), 33, "La clé publique compressée doit faire 33 octets");
+    assert_eq!(pubkey_bytes.len(), 33, "key_data must be 33 bytes and valid pub key");
     p2wpkh_address(pubkey_bytes)
 }

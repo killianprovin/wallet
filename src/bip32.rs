@@ -34,7 +34,7 @@ pub fn prv_to_pub(prv: &[u8], version: &[u8; 4]) -> Vec<u8> {
     let priv_key_bytes = &key_data[1..];
 
     let secp = Secp256k1::new();
-    let sk = SecretKey::from_slice(priv_key_bytes).expect("La clé privée doit être sur 32 octets et dans l'ordre de courbe");
+    let sk = SecretKey::from_slice(priv_key_bytes).expect("Invalid private key");
     let pk = PublicKey::from_secret_key(&secp, &sk);
     let pk_serialized = pk.serialize();
 
@@ -51,12 +51,8 @@ pub fn prv_to_pub(prv: &[u8], version: &[u8; 4]) -> Vec<u8> {
     extended_pub
 }
 
-fn ser32(i: u32) -> [u8; 4] {
-    i.to_be_bytes()
-}
-
 pub fn derive_child_prv(parent_prv: &[u8], index: u32, version: &[u8; 4]) -> Vec<u8> {
-    assert!(parent_prv.len() == 82, "Le prv parent doit être sur 82 octets.");
+    assert!(parent_prv.len() == 82, "Invalid parent xprv length");
     let parent_data = &parent_prv[..78];
 
     let parent_depth = parent_data[4];
@@ -65,7 +61,7 @@ pub fn derive_child_prv(parent_prv: &[u8], index: u32, version: &[u8; 4]) -> Vec
 
     let secp = Secp256k1::new();
     let parent_sk = SecretKey::from_slice(parent_privkey_bytes)
-        .expect("Clé privée parent invalide");
+        .expect("Invalid parent private key");
     let parent_pk = PublicKey::from_secret_key(&secp, &parent_sk);
     let parent_pk_ser = parent_pk.serialize();
     let parent_fingerprint = &hash160(&parent_pk_ser)[..4];
@@ -77,26 +73,26 @@ pub fn derive_child_prv(parent_prv: &[u8], index: u32, version: &[u8; 4]) -> Vec
     } else {
         data.extend_from_slice(&parent_pk_ser);
     }
-    data.extend_from_slice(&ser32(index));
+    data.extend_from_slice(&index.to_be_bytes());
 
     let i = hmac_sha512(parent_chain_code, &data);
     let il = &i[..32];
     let ir = &i[32..];
 
-    let il_array: [u8; 32] = il.try_into().expect("IL doit contenir exactement 32 octets");
+    let il_array: [u8; 32] = il.try_into().expect("il must be 32 bytes");
 
     let tweak_scalar = Scalar::from_be_bytes(il_array)
-        .expect("Impossible de convertir il en Scalar");
+        .expect("Impossible to convert tweak scalar");
 
     let child_sk = parent_sk
         .add_tweak(&tweak_scalar)
-        .expect("La dérivation de la clé enfant a échoué");
+        .expect("Derivation failed");
 
     let mut child_extended = Vec::with_capacity(78);
     child_extended.extend_from_slice(version);
     child_extended.push(parent_depth.wrapping_add(1));
     child_extended.extend_from_slice(parent_fingerprint);
-    child_extended.extend_from_slice(&ser32(index));
+    child_extended.extend_from_slice(&index.to_be_bytes());
     child_extended.extend_from_slice(ir);
     child_extended.push(0x00);
     child_extended.extend_from_slice(&child_sk[..]);
@@ -109,8 +105,8 @@ pub fn derive_child_prv(parent_prv: &[u8], index: u32, version: &[u8; 4]) -> Vec
 
 
 pub fn derive_child_pub(parent_pub: &[u8], index: u32, version: &[u8; 4]) -> Vec<u8> {
-    assert!(index < 0x80000000, "On ne peut pas dériver un enfant renforcé à partir d'un xpub.");
-    assert!(parent_pub.len() == 82, "Le xpub parent doit être sur 82 octets.");
+    assert!(index < 0x80000000, "Impossible to derive hardened child from public key");
+    assert!(parent_pub.len() == 82, "xpub length must be 82 bytes");
 
     let parent_data = &parent_pub[..78];
 
@@ -122,7 +118,7 @@ pub fn derive_child_pub(parent_pub: &[u8], index: u32, version: &[u8; 4]) -> Vec
 
     let mut data = Vec::with_capacity(33 + 4);
     data.extend_from_slice(parent_pk_ser);
-    data.extend_from_slice(&ser32(index));
+    data.extend_from_slice(&index.to_be_bytes());
 
     let i = hmac_sha512(parent_chain_code, &data);
     let il = &i[..32];
@@ -130,19 +126,19 @@ pub fn derive_child_pub(parent_pub: &[u8], index: u32, version: &[u8; 4]) -> Vec
 
     let secp = Secp256k1::new();
     let il_sk = SecretKey::from_slice(il)
-        .expect("IL n'est pas une clé privée valide");
+        .expect("il is not a valid private key");
     let il_pk = PublicKey::from_secret_key(&secp, &il_sk);
     let parent_pk = PublicKey::from_slice(parent_pk_ser)
-        .expect("Clé publique parent invalide");
+        .expect("Impossible to convert parent public key");
     let child_pk = parent_pk.combine(&il_pk)
-        .expect("La dérivation de la clé publique enfant a échoué");
+        .expect("Impossible to combine public keys");
     let child_pk_ser = child_pk.serialize();
 
     let mut child_extended = Vec::with_capacity(78);
     child_extended.extend_from_slice(version);
     child_extended.push(parent_depth.wrapping_add(1));
     child_extended.extend_from_slice(parent_fingerprint);
-    child_extended.extend_from_slice(&ser32(index));
+    child_extended.extend_from_slice(&index.to_be_bytes());
     child_extended.extend_from_slice(ir);
     child_extended.extend_from_slice(&child_pk_ser);
 
@@ -150,4 +146,16 @@ pub fn derive_child_pub(parent_pub: &[u8], index: u32, version: &[u8; 4]) -> Vec
     child_extended.extend_from_slice(checksum);
 
     child_extended
+}
+
+pub fn prv_to_secret_key(xprv: &[u8]) -> SecretKey {
+    let key_data = &xprv[46..78];
+    SecretKey::from_slice(key_data)
+        .expect("key_data must be 32 bytes and valid private key")
+}
+
+pub fn pub_to_public_key(xpub: &[u8]) -> PublicKey {
+    let key_data = &xpub[45..78];
+    PublicKey::from_slice(key_data)
+        .expect("key_data must be 33 bytes and valid pub key")
 }

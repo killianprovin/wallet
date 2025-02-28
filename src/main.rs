@@ -1,7 +1,9 @@
 use wallet::utils::{base58_encode};
+use wallet::bip32::{prv_to_secret_key, pub_to_public_key};
 use wallet::bip44::{generate_master_xprv, derive_child_xprv, xprv_to_xpub, p2pkh_address_from_xpub};
 use wallet::bip49::{generate_master_yprv, derive_child_yprv, yprv_to_ypub, p2sh_address_from_ypub};
 use wallet::bip84::{generate_master_zprv, derive_child_zprv, zprv_to_zpub, p2wpkh_address_from_zpub};
+use wallet::signature::{sign_bitcoin_message, verify_bitcoin_message, verify_bitcoin_message_with_address};
 
 fn main() {
     let mnemonic = "consider cry bomb sniff party pattern pool horse skirt damage dawn wagon excess slab snow abstract series dad worth frequent lemon imitate nest chicken";
@@ -74,4 +76,47 @@ fn main() {
     println!("Address 0: {}", address0);
     println!("Address 1: {}", address1);
     println!("Address 2: {}", address2);
+
+    // Signature d'un message avec la clé privée
+    println!("\n--- Signature ---");
+    let message = "Hello World, I want to sign this message!";
+
+    let prvkey = derive_child_xprv(&xprv_44_0_0_0, 0);
+    let pubkey = xprv_to_xpub(&prvkey);
+    let address = p2pkh_address_from_xpub(&xpub_44_0_0_0, 0);
+    let secret_key = prv_to_secret_key(&prvkey);
+
+    let signature = sign_bitcoin_message(message, &secret_key, true);
+    println!("Message: {}", message);
+    println!("address: {}", address);
+    println!("Signature: {}", signature);
+
+    // Vérification de la signature
+    let pubkey = pub_to_public_key(&pubkey);
+    let is_valid = verify_bitcoin_message(message, &signature, &pubkey);
+    println!("Signature is valid: {}", is_valid);
+
+    // Vérification de la signature avec l'adresse
+    let is_valid = verify_bitcoin_message_with_address(message, &address, &signature);
+    println!("Signature is valid: {}", is_valid);
 }
+
+
+
+
+
+
+
+
+
+
+
+/* 0.00015426 BTC on testnet4
+
+Tx : ae20ce9931fc9ed1c1e65e785510c2b58d75ac831fb92ab2925be4f295ff0883
+
+Address : tb1qrazrspgm7enyw0hcsl90jzcsj6hp0qv4hdd65v
+Privkey : zprvAhD3JhutQGPN3pgBZgG2uEkznsAuSWgAgWRFWKYDvh5PiJU3MtP6QqfzbUkeYGGQ6Vu5Aj9HCJ6GWCV9GWFGZoM2dmks4KMnEFDc1m8DhkN
+Pubkey : zpub6vCPiDSnEdwfGJkefho3GNhjLu1PqyQ23jLrJhwqV2cNb6oBuRhLxdzUSkyqbGE7NoGxpMbbNNeCpnbXZ939DPzrNkQBsLoTgAQ5PaTExrt
+
+*/

@@ -6,3 +6,4 @@ pub mod bip44;
 pub mod bip49;
 pub mod bip84;
 pub mod utils;
+pub mod signature;

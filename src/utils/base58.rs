@@ -37,5 +37,5 @@ pub fn base58_encode(data: &[u8]) -> String {
 
     encoded.reverse();
 
-    String::from_utf8(encoded).expect("Encodage UTF-8 valide")
+    String::from_utf8(encoded).expect("Invalid UTF-8 encoding")
 }
