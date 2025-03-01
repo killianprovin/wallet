@@ -79,7 +79,7 @@ fn main() {
 
     // Signature d'un message avec la clé privée
     println!("\n--- Signature ---");
-    let message = "Hello World, I want to sign this message!";
+    let message = "Hello World\nI want to sign this message!";
 
     let prvkey = derive_child_xprv(&xprv_44_0_0_0, 0);
     let pubkey = xprv_to_xpub(&prvkey);
@@ -98,6 +98,16 @@ fn main() {
 
     // Vérification de la signature avec l'adresse
     let is_valid = verify_bitcoin_message_with_address(message, &address, &signature);
+    println!("Signature is valid: {}", is_valid);
+
+    // Verification de la signature avec une adresse
+    let address = "18FgxNdGSemUZNybpdrgdr1rbdRFbuAwL9";
+
+    let message = "Esta es una prueba de firma de mensaje usando una dirección de Bitcoin, para Bit2Me Academy.";
+
+    let signature = "IJQ9jOGl5ZdjmsUNDYmAwUlFqfjp/FfAi5dzdgiQTfjheDYmBxfBq40URLPOoggonqRYtGydTdwmiRn8ZElcSjc=";
+
+    let is_valid = verify_bitcoin_message_with_address(&message, &address, &signature);
     println!("Signature is valid: {}", is_valid);
 }
 

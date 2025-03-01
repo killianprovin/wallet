@@ -1,14 +1,14 @@
 use secp256k1::{Secp256k1, Message, SecretKey, ecdsa::{RecoverableSignature, RecoveryId}, PublicKey};
 use crate::hash::{double_sha256, hash160};
-use crate::utils::{base64_encode, base64_decode, base58_encode};
+use crate::utils::{base64_encode, base64_decode, base58_encode, write_varint};
 
 pub fn sign_bitcoin_message(message: &str, secret_key: &SecretKey, compressed: bool) -> String {
     let prefix = "Bitcoin Signed Message:\n";
     
     let mut data = Vec::new();
-    data.push(prefix.len() as u8);
+    write_varint(prefix.len(), &mut data);
     data.extend_from_slice(prefix.as_bytes());
-    data.push(message.len() as u8);
+    write_varint(message.len(), &mut data);
     data.extend_from_slice(message.as_bytes());
 
     let hash: [u8; 32] = double_sha256(&data).try_into().expect("Hash must be 32 bytes");
@@ -37,9 +37,9 @@ pub fn verify_bitcoin_message(message: &str, signature: &str, public_key: &Publi
     let prefix = "Bitcoin Signed Message:\n";
     
     let mut data = Vec::new();
-    data.push(prefix.len() as u8);
+    write_varint(prefix.len(), &mut data);
     data.extend_from_slice(prefix.as_bytes());
-    data.push(message.len() as u8);
+    write_varint(message.len(), &mut data);
     data.extend_from_slice(message.as_bytes());
 
     let hash: [u8; 32] = double_sha256(&data).try_into().expect("Hash must be 32 bytes");
@@ -63,9 +63,9 @@ pub fn verify_bitcoin_message_with_address(message: &str, address: &str, signatu
     let prefix = "Bitcoin Signed Message:\n";
     
     let mut data = Vec::new();
-    data.push(prefix.len() as u8);
+    write_varint(prefix.len(), &mut data);
     data.extend_from_slice(prefix.as_bytes());
-    data.push(message.len() as u8);
+    write_varint(message.len(), &mut data);
     data.extend_from_slice(message.as_bytes());
 
     let hash: [u8; 32] = double_sha256(&data).try_into().expect("Hash must be 32 bytes");
