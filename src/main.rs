@@ -1,36 +1,12 @@
-use wallet::utils::{base58_encode};
-use wallet::bip32::{prv_to_secret_key, pub_to_public_key};
-use wallet::bip44::{generate_master_xprv, derive_child_xprv, xprv_to_xpub, p2pkh_address_from_xpub};
-use wallet::bip49::{generate_master_yprv, derive_child_yprv, yprv_to_ypub, p2sh_address_from_ypub};
+use wallet::utils::{vec_to_hex, hex_to_vec};
 use wallet::bip84::{generate_master_zprv, derive_child_zprv, zprv_to_zpub, p2wpkh_address_from_zpub};
-use wallet::signature::{sign_bitcoin_message, verify_bitcoin_message, verify_bitcoin_message_with_address};
+
+use wallet::tx::{Tx, TxIn, TxOut, OutPoint, serialize_transaction, calculate_txid, create_script_pubkey};
 
 fn main() {
     let mnemonic = "consider cry bomb sniff party pattern pool horse skirt damage dawn wagon excess slab snow abstract series dad worth frequent lemon imitate nest chicken";
     let passphrase = "";
     
-    // Test BIP44: m/44'/0'/0'/0
-    println!("--- BIP44 (xprv/xpub) ---");
-    let master_xprv = generate_master_xprv(mnemonic, passphrase);
-    let xprv_44 = derive_child_xprv(&master_xprv, 0x8000002C);  // m/44'
-    let xprv_44_0 = derive_child_xprv(&xprv_44, 0x80000000);      // m/44'/0'
-    let xprv_44_0_0 = derive_child_xprv(&xprv_44_0, 0x80000000);    // m/44'/0'/0'
-    let xprv_44_0_0_0 = derive_child_xprv(&xprv_44_0_0, 0);          // m/44'/0'/0'/0
-    let xpub_44_0_0_0 = xprv_to_xpub(&xprv_44_0_0_0);
-    println!("m/44'/0'/0'/0 xprv: {}", base58_encode(&xprv_44_0_0_0));
-    println!("m/44'/0'/0'/0 xpub: {}", base58_encode(&xpub_44_0_0_0));
-
-    // Test BIP49: m/49'/0'/0'/0
-    println!("\n--- BIP49 (yprv/ypub) ---");
-    let master_yprv = generate_master_yprv(mnemonic, passphrase);
-    let yprv_49 = derive_child_yprv(&master_yprv, 0x80000031);  // m/49'
-    let yprv_49_0 = derive_child_yprv(&yprv_49, 0x80000000);      // m/49'/0'
-    let yprv_49_0_0 = derive_child_yprv(&yprv_49_0, 0x80000000);    // m/49'/0'/0'
-    let yprv_49_0_0_0 = derive_child_yprv(&yprv_49_0_0, 0);          // m/49'/0'/0'/0
-    let ypub_49_0_0_0 = yprv_to_ypub(&yprv_49_0_0_0);
-    println!("m/49'/0'/0'/0 yprv: {}", base58_encode(&yprv_49_0_0_0));
-    println!("m/49'/0'/0'/0 ypub: {}", base58_encode(&ypub_49_0_0_0));
-
     // Test BIP84: m/84'/0'/0'/0
     println!("\n--- BIP84 (zprv/zpub) ---");
     let master_zprv = generate_master_zprv(mnemonic, passphrase);
@@ -39,76 +15,55 @@ fn main() {
     let zprv_84_0_0 = derive_child_zprv(&zprv_84_0, 0x80000000);    // m/84'/0'/0'
     let zprv_84_0_0_0 = derive_child_zprv(&zprv_84_0_0, 0);          // m/84'/0'/0'/0
     let zpub_84_0_0_0 = zprv_to_zpub(&zprv_84_0_0_0);
-    println!("m/84'/0'/0'/0 zprv: {}", base58_encode(&zprv_84_0_0_0));
-    println!("m/84'/0'/0'/0 zpub: {}", base58_encode(&zpub_84_0_0_0));
 
-    // Test derivation normal de xprv puis prv_to_pub egale de xpub
-    let xpub_44_0_0_0_derived = derive_child_xprv(&xprv_44_0_0, 0);
-    let xpub_44_0_0_0_derived = xprv_to_xpub(&xpub_44_0_0_0_derived);
-    assert_eq!(xpub_44_0_0_0, xpub_44_0_0_0_derived);
-
-    // Génération de 3 adresses P2PKH à partir de la clé publique compressée
-    let address0 = p2pkh_address_from_xpub(&xpub_44_0_0_0, 0);
-    let address1 = p2pkh_address_from_xpub(&xpub_44_0_0_0, 1);
-    let address2 = p2pkh_address_from_xpub(&xpub_44_0_0_0, 2);
-
-    println!("\n--- P2PKH addresses ---");
-    println!("Address 0: {}", address0);
-    println!("Address 1: {}", address1);
-    println!("Address 2: {}", address2);
-
-    // Génération de 3 adresses P2SH-P2WPKH à partir de la clé publique compressée
-    let address0 = p2sh_address_from_ypub(&ypub_49_0_0_0, 0);
-    let address1 = p2sh_address_from_ypub(&ypub_49_0_0_0, 1);
-    let address2 = p2sh_address_from_ypub(&ypub_49_0_0_0, 2);
-
-    println!("\n--- P2SH-P2WPKH addresses ---");
-    println!("Address 0: {}", address0);
-    println!("Address 1: {}", address1);
-    println!("Address 2: {}", address2);
 
     // Génération de 3 adresses P2WPKH à partir de la clé publique compressée
     let address0 = p2wpkh_address_from_zpub(&zpub_84_0_0_0, 0);
     let address1 = p2wpkh_address_from_zpub(&zpub_84_0_0_0, 1);
-    let address2 = p2wpkh_address_from_zpub(&zpub_84_0_0_0, 2);
 
     println!("\n--- P2WPKH addresses ---");
     println!("Address 0: {}", address0);
     println!("Address 1: {}", address1);
-    println!("Address 2: {}", address2);
 
-    // Signature d'un message avec la clé privée
-    println!("\n--- Signature ---");
-    let message = "Hello World\nI want to sign this message!";
+    let script_pubkey1 = create_script_pubkey("tb1qrazrspgm7enyw0hcsl90jzcsj6hp0qv4hdd65v")
+        .expect("Invalid script pubkey");
+    let script_pubkey2 = create_script_pubkey("tb1qhzkw7r54krcr3te57dwpq779ygcx8g396ke97g")
+        .expect("Invalid script pubkey");
 
-    let prvkey = derive_child_xprv(&xprv_44_0_0_0, 0);
-    let pubkey = xprv_to_xpub(&prvkey);
-    let address = p2pkh_address_from_xpub(&xpub_44_0_0_0, 0);
-    let secret_key = prv_to_secret_key(&prvkey);
+    let tx = Tx {
+        version: 2,
+        flag: Some(0x0100),
+        inputs: vec![
+            TxIn {
+                previous_output: OutPoint {
+                    txid: hex_to_vec("ae20ce9931fc9ed1c1e65e785510c2b58d75ac831fb92ab2925be4f295ff0883")
+                        .try_into()
+                        .expect("Invalid txid"),
+                    vout: 1,
+                },
+                script_sig: vec![],
+                sequence: 0xFFFFFFFF,
+            }
+        ],
+        outputs: vec![
+            TxOut {
+                value: 10_000,
+                script_pubkey: script_pubkey1.clone(),
+            },
+            TxOut {
+                value: 5_000,
+                script_pubkey: script_pubkey2.clone(),
+            },
+        ],
+        witnesses: Some(vec![]),
+        lock_time: 0,
+    };
 
-    let signature = sign_bitcoin_message(message, &secret_key, true);
-    println!("Message: {}", message);
-    println!("address: {}", address);
-    println!("Signature: {}", signature);
+    let txid = calculate_txid(&tx);
+    println!("Txid: {}", vec_to_hex(&txid));
 
-    // Vérification de la signature
-    let pubkey = pub_to_public_key(&pubkey);
-    let is_valid = verify_bitcoin_message(message, &signature, &pubkey);
-    println!("Signature is valid: {}", is_valid);
-
-    // Vérification de la signature avec l'adresse
-    let is_valid = verify_bitcoin_message_with_address(message, &address, &signature);
-    println!("Signature is valid: {}", is_valid);
-
-    // Verification de la signature avec une adresse
-    let address = "18FgxNdGSemUZNybpdrgdr1rbdRFbuAwL9";
-
-    let message = "Esta es una prueba de firma de mensaje usando una dirección de Bitcoin, para Bit2Me Academy.";
-
-    let signature = "IJQ9jOGl5ZdjmsUNDYmAwUlFqfjp/FfAi5dzdgiQTfjheDYmBxfBq40URLPOoggonqRYtGydTdwmiRn8ZElcSjc=";
-
-    let is_valid = verify_bitcoin_message_with_address(&message, &address, &signature);
-    println!("Signature is valid: {}", is_valid);
+    let raw_tx = serialize_transaction(&tx, true);
+    println!("Raw tx: {}", vec_to_hex(&raw_tx));
 }
 
 
@@ -124,9 +79,10 @@ fn main() {
 /* 0.00015426 BTC on testnet4
 
 Tx : ae20ce9931fc9ed1c1e65e785510c2b58d75ac831fb92ab2925be4f295ff0883
-
 Address : tb1qrazrspgm7enyw0hcsl90jzcsj6hp0qv4hdd65v
 Privkey : zprvAhD3JhutQGPN3pgBZgG2uEkznsAuSWgAgWRFWKYDvh5PiJU3MtP6QqfzbUkeYGGQ6Vu5Aj9HCJ6GWCV9GWFGZoM2dmks4KMnEFDc1m8DhkN
 Pubkey : zpub6vCPiDSnEdwfGJkefho3GNhjLu1PqyQ23jLrJhwqV2cNb6oBuRhLxdzUSkyqbGE7NoGxpMbbNNeCpnbXZ939DPzrNkQBsLoTgAQ5PaTExrt
 
 */
+
+//02000000000101d0edf061023a1edc36fd887e4ba6c660cbdb3ada9d3456baec55c4ab682497980000000000fdffffff02b05b7e030000000016001464d7c3134e71393f900108bccf43f18eee02faea423c0000000000001600141f4438051bf666473ef887caf90b1096ae178195014073d3c41947ba2092e471045e6174516128cfb97c753ce81baf8453517c82deafec61af5913d0a17d241558552cd8d5d4638c731c888d7c2b751004acacf2807881190100

@@ -1,4 +1,14 @@
 const CHARSET: &str = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+const CHARSET_REV: [i8; 128] = [
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    15, -1, 10, 17, 21, 20, 26, 30,  7,  5, -1, -1, -1, -1, -1, -1,
+    -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
+     1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1,
+    -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
+     1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1
+];
 
 pub enum Bech32Variant {
     Bech32,
@@ -50,6 +60,12 @@ fn create_checksum(hrp: &str, data: &[u8], variant: Bech32Variant) -> Vec<u8> {
     checksum
 }
 
+fn verify_checksum(hrp: &str, data: &[u8]) -> bool {
+    let mut values = hrp_expand(hrp);
+    values.extend_from_slice(data);
+    polymod(&values) == 1
+}
+
 pub fn encode_bech32(hrp: &str, data: &[u8], variant: Bech32Variant) -> String {
     let checksum = create_checksum(hrp, data, variant);
     let mut combined = Vec::new();
@@ -89,4 +105,33 @@ pub fn convert_bits(data: &[u8], from_bits: u32, to_bits: u32, pad: bool) -> Res
         return Err("Invalid padding");
     }
     Ok(ret)
+}
+
+pub fn decode_bech32(bech32: &str) -> Result<(String, Vec<u8>), &'static str> {
+    if bech32.len() < 8 || bech32.len() > 90 {
+        return Err("Invalid Bech32 string length");
+    }
+
+    let (hrp, data) = match bech32.rfind('1') {
+        Some(pos) => (&bech32[..pos], &bech32[pos + 1..]),
+        None => return Err("Invalid Bech32 format: missing separator '1'"),
+    };
+
+    if hrp.is_empty() || data.len() < 6 {
+        return Err("Invalid Bech32 format: HRP or data part too short");
+    }
+
+    let mut data_values = Vec::with_capacity(data.len());
+    for c in data.chars() {
+        if c as usize >= 128 || CHARSET_REV[c as usize] == -1 {
+            return Err("Invalid character in Bech32 string");
+        }
+        data_values.push(CHARSET_REV[c as usize] as u8);
+    }
+
+    if !verify_checksum(hrp, &data_values) {
+        return Err("Invalid checksum");
+    }
+
+    Ok((hrp.to_string(), data_values[..data_values.len() - 6].to_vec()))
 }

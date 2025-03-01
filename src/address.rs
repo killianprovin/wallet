@@ -43,5 +43,5 @@ pub fn p2wpkh_address(pubkey: &[u8]) -> String {
     let mut data = vec![0x00];
     data.extend_from_slice(&convert_bits(&ripemd160_hash, 8, 5, true).unwrap());
 
-    encode_bech32("bc", &data, Bech32Variant::Bech32)
+    encode_bech32("tb", &data, Bech32Variant::Bech32)
 }
