@@ -15,6 +15,8 @@ Ensuite géréation de la master key avec BIP32 (private key + code de chaine de
 - BIP49
 - BIP84
 
+# Gestion calcule TXid
+
 ## À venir
 - Gestion des adresses
 - signature (Taproot, P2PK, ...)
