@@ -1,7 +1,7 @@
 use crate::hash::double_sha256;
 use crate::utils::{write_varint, read_varint, decode_bech32, bech32::convert_bits, hex_to_vec};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tx {
     pub version: u32,
     pub flag: Option<u16>,
@@ -11,26 +11,26 @@ pub struct Tx {
     pub lock_time: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TxIn {
     pub previous_output: OutPoint,
     pub script_sig: Vec<u8>,
     pub sequence: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TxOut {
     pub value: u64,
     pub script_pubkey: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OutPoint {
     pub txid: [u8; 32],
     pub vout: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Witness {
     pub items: Vec<Vec<u8>>,
 }
@@ -163,7 +163,6 @@ pub fn deserialize_transaction(hex: &str) -> Result<Tx, String> {
         });
     }
 
-    // Lire les sorties
     let output_count = read_varint(&raw, &mut index);
     let mut outputs = Vec::with_capacity(output_count);
     for _ in 0..output_count {
